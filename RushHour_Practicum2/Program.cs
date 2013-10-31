@@ -18,7 +18,7 @@ namespace RushHour_Practicum2
 
 			int boardWidth = lines [0].Length;
 			Board board = new Board (boardWidth, boardHeight, lines);
-			//Solver solve = new Solver ();
+            new Solver(board, xTarget, yTarget);
 		}
 	}
 }
