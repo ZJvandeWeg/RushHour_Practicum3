@@ -16,6 +16,12 @@ namespace RushHour_Practicum2
             this.lastMove = lastmove;
         }
 
+        public void AddChild(Vertice v)
+        {
+            v.parent = this;
+            children.Add(v);
+        }
+
         public void AddChild(Board newState, string lastMove)
         {
             Vertice child = new Vertice(newState, lastMove);
@@ -34,6 +40,19 @@ namespace RushHour_Practicum2
             }
 
             return moves;
+        }
+
+        public int countToRoot()
+        {
+            Vertice node = this;
+            int count = 0;
+            while (node.parent != null)
+            {
+                count++;
+                node = node.parent;
+            }
+
+            return count;
         }
     }
 }

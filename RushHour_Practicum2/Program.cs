@@ -15,10 +15,11 @@ namespace RushHour_Practicum2
 			for (int i = 0; i < boardHeight; i++) {
 				lines [i] = Console.ReadLine ();
 			}
-
+            
 			int boardWidth = lines [0].Length;
 			Board board = new Board (boardWidth, boardHeight, lines);
-            new Solver(board, xTarget, yTarget);
-		}
+            new Solver(board, xTarget, yTarget, outputMode);
+            Console.ReadKey();
+        }
 	}
 }
