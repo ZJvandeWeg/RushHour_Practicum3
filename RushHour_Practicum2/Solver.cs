@@ -90,6 +90,10 @@ namespace RushHour_Practicum2
 
                     Console.WriteLine("Checking: " + car);
                     //What direction does the car go? NS || WE
+
+//!!! THIS CHECK DOES NOT WORK YET??
+//IS ALWAYS FALSE
+//Possible reason, are the X and Y axis inverted??
                     if (x < this.boardWidth && currentState.board[x + 1, y] == car)
                     {
                         //Horizontal moving
