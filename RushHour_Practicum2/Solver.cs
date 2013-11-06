@@ -18,7 +18,7 @@ namespace RushHour_Practicum2
             
             HashTable = new Hashtable();
             root = new Vertice(rootBoard, null);
-            
+
             HashTable.Add(rootBoard.Hash(), rootBoard);
             queue = new ConcurrentQueue<Vertice>();
             queue.Enqueue(root);
@@ -54,6 +54,7 @@ namespace RushHour_Practicum2
                     }
                     Console.WriteLine("Child added");
                     dequeue.AddChild(v);
+                    queue.Enqueue(v);
                 }
             }
             if (isSolved)
@@ -78,8 +79,8 @@ namespace RushHour_Practicum2
         {
             List<Vertice> result = new List<Vertice>();
             List<char> checkedCars = new List<char>();
-            for (int x = 0; x < this.boardWidth; x++)
-                for (int y = 0; y < this.boardWidth; y++)
+            for (int y = 0; y < this.boardWidth; y++)
+                for (int x = 0; x < this.boardWidth; x++)
                 {
                     char car = currentState.board[x, y];
 
@@ -91,24 +92,21 @@ namespace RushHour_Practicum2
                     Console.WriteLine("Checking: " + car);
                     //What direction does the car go? NS || WE
 
-//!!! THIS CHECK DOES NOT WORK YET??
-//IS ALWAYS FALSE
-//Possible reason, are the X and Y axis inverted??
-                    if (x < this.boardWidth && currentState.board[x + 1, y] == car)
+                    //Console.WriteLine("x = " + x + " car = " + car + currentState.board[x + 1, y]);
+                    if (x+1 < this.boardWidth && currentState.board[x+1,y] == car)
                     {
                         //Horizontal moving
-
                         //Grab position of the car
                         int[] oldTopLeftCorner = {x,y};
                         
                         int endCar = x+1;
-                        while(currentState.board[endCar, y] == car)
+                        while(endCar < this.boardWidth && currentState.board[endCar, y] == car)
                             endCar++;
                         int[] oldBottomRightCorner = {endCar, y};
 
                         //Scan left and right for open position, for each position open
                         //we create a new vertice.
-                        for (int i = x - 1; i >= 0; i--)
+                        for (int i = y - 1; i >= 0; i--)
                         {
                             if (currentState.board[i, y] != '.')
                                 break;
@@ -136,7 +134,7 @@ namespace RushHour_Practicum2
 
                             int stepstaken = i - oldBottomRightCorner[0];
 
-                            int[] newTopLeftCorner = { x + stepstaken, y };
+                            int[] newTopLeftCorner = { y + stepstaken, y };
                             int[] newBottomRightCorner = { i, y };
 
                             Board newBoard = createNewState(currentState, car,
@@ -152,12 +150,11 @@ namespace RushHour_Practicum2
                     }
                     else
                     {
-                        Console.WriteLine(car + " goes Vertical");
                         //Set the old positions
                         int[] oldTopLeftCorner = { x, y };
 
                         int endCar = y + 1;
-                        while (currentState.board[x, endCar] == car)
+                        while (currentState.board[y, endCar] == car)
                             endCar++;
                         int[] oldBottomRightCorner = { x, endCar };
 
@@ -176,7 +173,6 @@ namespace RushHour_Practicum2
                             Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
-                            Console.WriteLine("New Board Check");
                             if (!isVisitedState(newBoard))
                             {
                                 result.Add(new Vertice(newBoard, car + "d" + stepstaken));
@@ -193,13 +189,12 @@ namespace RushHour_Practicum2
                             int stepstaken = i - oldBottomRightCorner[1];
 
                             int[] newTopLeftCorner = { x, y + stepstaken };
-                            int[] newBottomRightCorner = { x, i };
+                            int[] newBottomRightCorner = { x, y };
 
 
                             Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
-                            Console.WriteLine("New Board Check UP");
                             if (!isVisitedState(newBoard))
                             {
                                 Console.WriteLine("New Board added");
@@ -232,33 +227,34 @@ namespace RushHour_Practicum2
             //Remove the old car
             //Do we move NS || WE
             bool goesVertical = (x == oldBottomRightCorner[0]);
-
+            
             if (goesVertical)
             {
                 //empty the spot the car used to be
-                for (int i = y; i <= oldBottomRightCorner[1]; i++)
+                for (int i = y; i < oldBottomRightCorner[1]; i++)
                     result.board[x, i] = '.';
             }
             else
             {
-                for (int i = x; i <= oldBottomRightCorner[0]; i++)
+                for (int i = x; i < oldBottomRightCorner[0]; i++)
                     result.board[i, y] = '.';
             }
-
+            
             //Draw the car on it's new spot. :)
             x = newTopLeftCorner[0];
             y = newTopLeftCorner[1];
 
             if (goesVertical)
             {
-                for(int i = y; i <= newBottomRightCorner[1]; i++)
+                for(int i = y; i < newBottomRightCorner[1]; i++)
                     result.board[x, i] = car;
             }
             else
             {
-                for (int i = x; i <= newBottomRightCorner[0]; i++)
+                for (int i = x; i < newBottomRightCorner[0]; i++)
                     result.board[i, y] = car;
             }
+            
             return board;
         }
 

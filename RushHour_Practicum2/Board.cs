@@ -6,18 +6,16 @@ namespace RushHour_Practicum2
 {
 	public class Board
 	{
-		public int height;
 		public int width;
 		public char[,] board;
 		public Board (int width, int height, string[] lines)
 		{
-			this.height = height;
 			this.width = width;
-			this.board = new char[this.width, this.height];
+			this.board = new char[this.width, this.width];
 
-			for (int i = 0; i < this.height; i++) {
-				for (int i2 = 0; i2 < this.width; i2++) {
-					this.board [i2, i] = lines [i] [i2];
+			for (int y = 0; y < this.width; y++) {
+				for (int x = 0; x < this.width; x++) {
+					this.board [x, y] = lines [y] [x];
 				}
 			}
 		}
@@ -26,7 +24,6 @@ namespace RushHour_Practicum2
         {
             this.board = newState.board;
             this.width = newState.width;
-            this.height = newState.height;
         }
 
         public string Hash()
@@ -48,6 +45,20 @@ namespace RushHour_Practicum2
                 sb.Append(hash[i].ToString("X2"));
             }
             return sb.ToString();
+        }
+
+        public void print()
+        {
+            string print = "";
+            for(int y = 0; y < this.width; y++)
+            {
+                for (int x = 0; x < this.width; x++)
+                    print += this.board[x, y];
+                
+                Console.WriteLine(print);
+                print = "";
+            }
+            Console.WriteLine("\n");
         }
 	}
 }
