@@ -32,23 +32,33 @@ namespace RushHour_Practicum2
 
         public string Hash()
         {
-            string stringboard = "";
-            foreach (char c in this.board)
-            {
-                stringboard += c;
-            }
-            // step 1, calculate MD5 hash from input
-            MD5 md5 = System.Security.Cryptography.MD5.Create();
-            byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(stringboard);
-            byte[] hash = md5.ComputeHash(inputBytes);
+            //string stringboard = "";
+            //foreach (char c in this.board)
+            //{
+            //    stringboard += c;
+            //}
+            //// step 1, calculate MD5 hash from input
+            //MD5 md5 = System.Security.Cryptography.MD5.Create();
+            //byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(stringboard);
+            //byte[] hash = md5.ComputeHash(inputBytes);
 
-            // step 2, convert byte array to hex string
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < hash.Length; i++)
+            //// step 2, convert byte array to hex string
+            //StringBuilder sb = new StringBuilder();
+            //for (int i = 0; i < hash.Length; i++)
+            //{
+            //    sb.Append(hash[i].ToString("X2"));
+            //}
+            //return sb.ToString();
+            string stringboard = "";
+            for (int y = 0; y < this.height; y++)
             {
-                sb.Append(hash[i].ToString("X2"));
+                for (int x = 0; x < this.width; x++)
+                {
+                    stringboard += this.board[x, y];
+                }
+                stringboard += 'n';
             }
-            return sb.ToString();
+            return stringboard;
         }
 
         public void print()
