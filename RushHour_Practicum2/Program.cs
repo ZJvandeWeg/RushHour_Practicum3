@@ -18,7 +18,16 @@ namespace RushHour_Practicum2
             
 			int boardWidth = lines [0].Length;
 			Board board = new Board (boardWidth, boardHeight, lines);
-            new Solver(board, xTarget, yTarget, outputMode);
+
+            int amountOfRuns = 100;
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+            for (int i = 0; i < amountOfRuns; i++)
+            {
+                new Solver(board, xTarget, yTarget, outputMode);    
+            }
+            sw.Stop();
+            Console.WriteLine("On average time in ms: " + sw.ElapsedMilliseconds / amountOfRuns);
             Console.ReadKey();
         }
 	}

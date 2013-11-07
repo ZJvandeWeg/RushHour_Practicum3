@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Diagnostics;
 
 namespace RushHour_Practicum2
 {
@@ -13,19 +12,20 @@ namespace RushHour_Practicum2
         int boardWidth;
         int boardHeight;
         Vertice root;
-        Hashtable HashTable;
+        Hashtable syncHT;
         ConcurrentQueue<Vertice> queue;
 
         public Solver (Board rootBoard, int xTarget, int yTarget, int outputMode)
         {
-            //Console.WriteLine(rootBoard);
             boardWidth = rootBoard.width;
             boardHeight = rootBoard.height;
             
-            HashTable = new Hashtable();
+            Hashtable HashTable = new Hashtable();
             root = new Vertice(rootBoard, null);
 
             HashTable.Add(rootBoard.Hash(), rootBoard);
+
+            syncHT = Hashtable.Synchronized(HashTable);
             queue = new ConcurrentQueue<Vertice>();
             queue.Enqueue(root);
             solve(xTarget, yTarget, outputMode);
@@ -33,21 +33,17 @@ namespace RushHour_Practicum2
 
         public void solve(int xTarget, int yTarget, int outputMode)
         {
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
             isSolved mt_isSolved = new isSolved(false);
             bool lengthCheckX = (xTarget - 1) >= 0;
             bool lengthCheckY = (yTarget - 1) >= 0;
             Vertice dequeue;
             Vertice solvedGame = null;
 
-            //Parallel.ForEach<Vertice>(queue, new Action<Vertice,ParallelLoopState>((v, loopstate) =>
-            while (!mt_isSolved.b && !queue.TryDequeue(out dequeue))
+            while (!mt_isSolved.b && queue.TryDequeue(out dequeue))
             {
                 Board next = dequeue.state;
                 List<Vertice> moves = new List<Vertice>(allPossibleMoves(next));
 
-                //Parallel.ForEach<Vertice>(moves, new Action<Vertice, ParallelLoopState>((v, loopstate) =>
                 foreach (Vertice v in moves)
                 {
                     if (v.state.board[xTarget, yTarget] == 'x')
@@ -87,8 +83,7 @@ namespace RushHour_Practicum2
                         break;
                 }
             }
-            sw.Stop();
-            Console.WriteLine("Total time: (ms) " + sw.ElapsedMilliseconds);
+
             if (mt_isSolved.b)
             {
                 if (outputMode == 0)
@@ -158,7 +153,7 @@ namespace RushHour_Practicum2
                                 Vertice vResult = new Vertice(newBoard, car + "l" + stepstaken);
                                 //Console.WriteLine(vResult);
                                 result.Add(vResult);
-                                HashTable.Add(newBoard.Hash(), newBoard);
+                                syncHT.Add(newBoard.Hash(), newBoard);
                             }
                         }
 
@@ -185,7 +180,7 @@ namespace RushHour_Practicum2
                                 Vertice vResult = new Vertice(newBoard, car + "r" + stepstaken);
                                 //Console.WriteLine(vResult);
                                 result.Add(vResult);
-                                HashTable.Add(newBoard.Hash(), newBoard);
+                                syncHT.Add(newBoard.Hash(), newBoard);
                             }
                         }
                     }
@@ -232,7 +227,7 @@ namespace RushHour_Practicum2
                                 Vertice vResult = new Vertice(newBoard, car + "u" + stepstaken);
                                 //Console.WriteLine(vResult);
                                 result.Add(vResult);
-                                HashTable.Add(newBoard.Hash(), newBoard);
+                                syncHT.Add(newBoard.Hash(), newBoard);
                             }
                             //Console.WriteLine("Vertical-UP");
                             //Console.WriteLine(currentState);
@@ -265,7 +260,7 @@ namespace RushHour_Practicum2
                                 Vertice vResult = new Vertice(newBoard, car + "d" + stepstaken);
                                 //Console.WriteLine(vResult);
                                 result.Add(vResult);
-                                HashTable.Add(newBoard.Hash(), newBoard);
+                                syncHT.Add(newBoard.Hash(), newBoard);
                             }
                         }
                     }
@@ -331,7 +326,7 @@ namespace RushHour_Practicum2
         #region Helpers for the Hash Table
         private bool isVisitedState(Board newState)
         {
-            bool test = HashTable.ContainsKey(newState.Hash());
+            bool test = syncHT.ContainsKey(newState.Hash());
             return test;
         }
         #endregion
