@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Diagnostics;
 
 namespace RushHour_Practicum2
@@ -34,79 +35,69 @@ namespace RushHour_Practicum2
         {
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            bool isSolved = false;
+            isSolved mt_isSolved = new isSolved(false);
             bool lengthCheckX = (xTarget - 1) >= 0;
             bool lengthCheckY = (yTarget - 1) >= 0;
             Vertice dequeue;
             Vertice solvedGame = null;
-            Console.WriteLine("Starting brute force solving..");
-            while (!isSolved && queue.TryDequeue(out dequeue))
+
+            //Parallel.ForEach<Vertice>(queue, new Action<Vertice,ParallelLoopState>((v, loopstate) =>
+            while (!mt_isSolved.b && !queue.TryDequeue(out dequeue))
             {
-                //Console.Title = "" + sw.Elapsed;
-                //Console.WriteLine("Queuesize: " + queue.Count);
-                //Console.WriteLine("B T Ch: ");
-                //Console.WriteLine(dequeue);
-                //Concurrent For loop gebruiken hierna
                 Board next = dequeue.state;
-                //Console.WriteLine(next);
                 List<Vertice> moves = new List<Vertice>(allPossibleMoves(next));
-                //Console.WriteLine("Moves: " + moves.Count);
+
+                //Parallel.ForEach<Vertice>(moves, new Action<Vertice, ParallelLoopState>((v, loopstate) =>
                 foreach (Vertice v in moves)
                 {
-                    //Console.WriteLine(v.state.board[xTarget, yTarget]);
-                    //Console.WriteLine(v.state.board[xTarget + 1, yTarget]);
                     if (v.state.board[xTarget, yTarget] == 'x')
                     {
-                        try
-                        {
-                            //Vertical + other lengths
-                            bool solveX = false; 
-                            if (lengthCheckX)
-                                solveX = (v.state.board[xTarget - 1, yTarget] != 'x') &&
-                                    (v.state.board[xTarget + 1, yTarget] == 'x');
-                            else
-                                solveX = (v.state.board[xTarget + 1, yTarget] == 'x');
-                            
-                            bool solveY = false; 
-                            if (lengthCheckY)
-                                solveY = (v.state.board[xTarget, yTarget - 1] != 'x') &&
-                                    (v.state.board[xTarget, yTarget + 1] == 'x');
-                            else
-                                solveX = (v.state.board[xTarget, yTarget + 1] == 'x');
-                            
-                            isSolved = ((v.state.board[xTarget, yTarget] == 'x') &&
-                                (solveX || solveY));
+                        //Vertical + other lengths
+                        bool solveX = false;
+                        if (lengthCheckX)
+                            solveX = (v.state.board[xTarget - 1, yTarget] != 'x') &&
+                                (v.state.board[xTarget + 1, yTarget] == 'x');
+                        else
+                            solveX = (v.state.board[xTarget + 1, yTarget] == 'x');
 
-                            if (isSolved) 
-                                solvedGame = v;
-                        }
-                        catch (IndexOutOfRangeException)
-                        {
+                        bool solveY = false;
+                        if (lengthCheckY)
+                            solveY = (v.state.board[xTarget, yTarget - 1] != 'x') &&
+                                (v.state.board[xTarget, yTarget + 1] == 'x');
+                        else
+                            solveX = (v.state.board[xTarget, yTarget + 1] == 'x');
 
+                        if ((v.state.board[xTarget, yTarget] == 'x') &&
+                            (solveX || solveY))
+                        {
+                            lock (mt_isSolved)
+                            {
+                                mt_isSolved.b = true;
+                            }
                         }
-                        //Console.WriteLine(v.state.board[xTarget, yTarget]);
-                        //Console.WriteLine(v.state.board[xTarget + 1, yTarget]);
+                        if (mt_isSolved.b)
+                            solvedGame = v;
+
                     }
-                    //Console.WriteLine("Child added");
+                    
                     dequeue.AddChild(v);
                     queue.Enqueue(v);
-                    //Console.WriteLine(v);
-                    if (isSolved)
+
+                    if (mt_isSolved.b)
                         break;
                 }
             }
             sw.Stop();
-            Console.WriteLine("Total time: " + sw.Elapsed);
-            if (isSolved)
+            Console.WriteLine("Total time: (ms) " + sw.ElapsedMilliseconds);
+            if (mt_isSolved.b)
             {
-                Console.WriteLine("Found!");
                 if (outputMode == 0)
                     Console.WriteLine(solvedGame.countToRoot());
                 else
                     Console.WriteLine(solvedGame.movesToRoot());
             }
             else if(queue.IsEmpty)
-                Console.WriteLine("No solution");
+                Console.WriteLine("Geen oplossing gevonden");
 
         }
 
@@ -344,6 +335,15 @@ namespace RushHour_Practicum2
             return test;
         }
         #endregion
+    }
+
+    class isSolved
+    {
+        public bool b;
+        public isSolved(bool b)
+        {
+            this.b = b;
+        }
     }
 }
 

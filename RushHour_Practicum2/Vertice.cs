@@ -9,6 +9,7 @@ namespace RushHour_Practicum2
         public Board state;
         public Vertice parent;
         public string lastMove;
+        public int level;
         public List<Vertice> children = new List<Vertice>();
 
         public Vertice(Board board, string lastmove)
@@ -20,6 +21,7 @@ namespace RushHour_Practicum2
         public void AddChild(Vertice v)
         {
             v.parent = this;
+            v.level = this.level + 1;
             children.Add(v);
         }
 
@@ -27,6 +29,7 @@ namespace RushHour_Practicum2
         {
             Vertice child = new Vertice(newState, lastMove);
             child.parent = this;
+            child.level = this.level + 1;
             children.Add(child);
         }
 
@@ -34,38 +37,19 @@ namespace RushHour_Practicum2
         {
             StringBuilder sb = new StringBuilder(); 
             Vertice node = this;
-            while (node.parent != null)
+            for(int i = 0; i < this.level; i++)
             {
                 sb.Insert(0, node.lastMove + ", ");
                 node = node.parent;
             }
             sb.Remove(sb.Length-2,2);
 
-            //node = this;
-            //sb.Append("\n");
-            //sb.Append(node);
-            //sb.Append("\n");
-            //while (node.parent != null)
-            //{
-            //    node = node.parent;
-            //    sb.Append(node);
-            //    sb.Append("\n");
-            //}
-
             return sb.ToString();
         }
 
         public int countToRoot()
         {
-            Vertice node = this;
-            int count = 0;
-            while (node.parent != null)
-            {
-                count++;
-                node = node.parent;
-            }
-
-            return count;
+            return this.level;
         }
 
         public override string ToString()
