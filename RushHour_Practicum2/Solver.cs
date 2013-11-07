@@ -33,6 +33,8 @@ namespace RushHour_Practicum2
             Stopwatch sw = new Stopwatch();
             sw.Start();
             bool isSolved = false;
+            bool lengthCheckX = (xTarget - 1) >= 0;
+            bool lengthCheckY = (yTarget - 1) >= 0;
             Vertice dequeue;
             Vertice solvedGame = null;
             Console.WriteLine("Starting brute force solving..");
@@ -56,8 +58,23 @@ namespace RushHour_Practicum2
                         try
                         {
                             //Vertical + other lengths
+                            bool solveX = false; 
+                            if (lengthCheckX)
+                                solveX = (v.state.board[xTarget - 1, yTarget] != 'x') &&
+                                    (v.state.board[xTarget + 1, yTarget] == 'x');
+                            else
+                                solveX = (v.state.board[xTarget + 1, yTarget] == 'x');
+                            
+                            bool solveY = false; 
+                            if (lengthCheckY)
+                                solveY = (v.state.board[xTarget, yTarget - 1] != 'x') &&
+                                    (v.state.board[xTarget, yTarget + 1] == 'x');
+                            else
+                                solveX = (v.state.board[xTarget, yTarget + 1] == 'x');
+                            
                             isSolved = ((v.state.board[xTarget, yTarget] == 'x') &&
-                                       (v.state.board[xTarget + 1, yTarget] == 'x'));
+                                (solveX || solveY));
+
                             if (isSolved) 
                                 solvedGame = v;
                         }
