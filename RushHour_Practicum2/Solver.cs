@@ -10,6 +10,7 @@ namespace RushHour_Practicum2
 	public class Solver
 	{
         int boardWidth;
+        int boardHeight;
         Vertice root;
         Hashtable HashTable;
         ConcurrentQueue<Vertice> queue;
@@ -18,6 +19,7 @@ namespace RushHour_Practicum2
         {
             //Console.WriteLine(rootBoard);
             boardWidth = rootBoard.width;
+            boardHeight = rootBoard.height;
             
             HashTable = new Hashtable();
             root = new Vertice(rootBoard, null);
@@ -41,7 +43,7 @@ namespace RushHour_Practicum2
             while (!isSolved && queue.TryDequeue(out dequeue))
             {
                 //Console.Title = "" + sw.Elapsed;
-                Console.WriteLine("Queuesize: " + queue.Count);
+                //Console.WriteLine("Queuesize: " + queue.Count);
                 //Console.WriteLine("B T Ch: ");
                 //Console.WriteLine(dequeue);
                 //Concurrent For loop gebruiken hierna
@@ -85,7 +87,7 @@ namespace RushHour_Practicum2
                         //Console.WriteLine(v.state.board[xTarget, yTarget]);
                         //Console.WriteLine(v.state.board[xTarget + 1, yTarget]);
                     }
-                    Console.WriteLine("Child added");
+                    //Console.WriteLine("Child added");
                     dequeue.AddChild(v);
                     queue.Enqueue(v);
                     //Console.WriteLine(v);
@@ -93,6 +95,8 @@ namespace RushHour_Practicum2
                         break;
                 }
             }
+            sw.Stop();
+            Console.WriteLine("Total time: " + sw.Elapsed);
             if (isSolved)
             {
                 Console.WriteLine("Found!");
@@ -103,8 +107,6 @@ namespace RushHour_Practicum2
             }
             else if(queue.IsEmpty)
                 Console.WriteLine("No solution");
-            sw.Stop();
-            Console.WriteLine("Running time: " + sw.Elapsed);
 
         }
 
@@ -117,7 +119,7 @@ namespace RushHour_Practicum2
         {
             List<Vertice> result = new List<Vertice>();
             List<char> checkedCars = new List<char>();
-            for (int y = 0; y < this.boardWidth; y++)
+            for (int y = 0; y < this.boardHeight; y++)
                 for (int x = 0; x < this.boardWidth; x++)
                 {
                     char car = currentState.board[x, y];
@@ -127,7 +129,7 @@ namespace RushHour_Practicum2
                     if (car == '.' || checkedCars.Contains(car))
                         continue;
 
-                    Console.WriteLine("Checking: " + car);
+                    //Console.WriteLine("Checking: " + car);
                     //What direction does the car go? NS || WE
 
                     //Console.WriteLine("x = " + x + " car = " + car + currentState.board[x + 1, y]);
@@ -203,7 +205,7 @@ namespace RushHour_Practicum2
                         int[] oldTopLeftCorner = { x, y };
 
                         int endCar = y + 1;
-                        while (endCar + 1 < this.boardWidth && currentState.board[x, endCar + 1] == car)
+                        while (endCar + 1 < this.boardHeight && currentState.board[x, endCar + 1] == car)
                             endCar++;
                         int[] oldBottomRightCorner = { x, endCar };
 
@@ -247,7 +249,7 @@ namespace RushHour_Practicum2
                         }
 
                         //Now scan below the car
-                        for (int i = endCar + 1; i < this.boardWidth; i++)
+                        for (int i = endCar + 1; i < this.boardHeight; i++)
                         {
                             //Console.WriteLine("Vertical-DOWN");
                             //Console.WriteLine("Vertical-DOWN: " + i);

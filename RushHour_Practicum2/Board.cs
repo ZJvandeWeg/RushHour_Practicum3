@@ -6,14 +6,16 @@ namespace RushHour_Practicum2
 {
 	public class Board
 	{
+        public int height;
 		public int width;
 		public char[,] board;
 		public Board (int width, int height, string[] lines)
 		{
 			this.width = width;
-			this.board = new char[this.width, this.width];
+            this.height = height;
+			this.board = new char[this.width, this.height];
 
-			for (int y = 0; y < this.width; y++) {
+            for (int y = 0; y < this.height; y++) {
 				for (int x = 0; x < this.width; x++) {
 					this.board [x, y] = lines [y] [x];
 				}
@@ -25,6 +27,7 @@ namespace RushHour_Practicum2
             this.board = (char[,])newState.board.Clone();
             //this.board = newState.board;
             this.width = newState.width;
+            this.height = newState.height;
         }
 
         public string Hash()
@@ -51,7 +54,7 @@ namespace RushHour_Practicum2
         public void print()
         {
             string print = "";
-            for(int y = 0; y < this.width; y++)
+            for(int y = 0; y < this.height; y++)
             {
                 for (int x = 0; x < this.width; x++)
                     print += this.board[x, y];
@@ -66,7 +69,7 @@ namespace RushHour_Practicum2
         {
             StringBuilder sb = new StringBuilder();
             //sb.Append("\n");
-            for (int y = 0; y < this.width; y++)
+            for (int y = 0; y < this.height; y++)
             {
                 for (int x = 0; x < this.width; x++)
                     sb.Append(board[x, y]);
