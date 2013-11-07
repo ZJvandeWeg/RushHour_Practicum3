@@ -22,7 +22,8 @@ namespace RushHour_Practicum2
 
         public Board(Board newState)
         {
-            this.board = newState.board;
+            this.board = (char[,])newState.board.Clone();
+            //this.board = newState.board;
             this.width = newState.width;
         }
 
@@ -59,6 +60,20 @@ namespace RushHour_Practicum2
                 print = "";
             }
             Console.WriteLine("\n");
+        }
+
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            //sb.Append("\n");
+            for (int y = 0; y < this.width; y++)
+            {
+                for (int x = 0; x < this.width; x++)
+                    sb.Append(board[x, y]);
+                sb.Append("\n");
+            }
+            sb.Remove(sb.Length-1,1);
+            return sb.ToString();
         }
 	}
 }

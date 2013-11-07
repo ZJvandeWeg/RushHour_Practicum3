@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace RushHour_Practicum2
 {
@@ -31,15 +32,27 @@ namespace RushHour_Practicum2
 
         public string movesToRoot()
         {
-            string moves = "";
+            StringBuilder sb = new StringBuilder(); 
             Vertice node = this;
             while (node.parent != null)
             {
-                moves = this.lastMove + "," + moves;
+                sb.Insert(0, node.lastMove + ", ");
                 node = node.parent;
             }
+            sb.Remove(sb.Length-2,2);
 
-            return moves;
+            //node = this;
+            //sb.Append("\n");
+            //sb.Append(node);
+            //sb.Append("\n");
+            //while (node.parent != null)
+            //{
+            //    node = node.parent;
+            //    sb.Append(node);
+            //    sb.Append("\n");
+            //}
+
+            return sb.ToString();
         }
 
         public int countToRoot()
@@ -53,6 +66,11 @@ namespace RushHour_Practicum2
             }
 
             return count;
+        }
+
+        public override string ToString()
+        {
+            return this.state.ToString();
         }
     }
 }
