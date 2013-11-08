@@ -45,21 +45,24 @@ namespace RushHour_Practicum2
             while (!AllSolved && allPossibleBoards.Count > 0)
             {
                 // One event is used for each Fibonacci object.
-                ManualResetEvent[] doneEvents = new ManualResetEvent[totalThreads];
+                //ManualResetEvent[] doneEvents = new ManualResetEvent[totalThreads];
                 solveSituation[] solveArray = new solveSituation[totalThreads];
+
+                WaitEvent _waitEvent = new WaitEvent(new ManualResetEvent(false), totalThreads);
 
                 // Configure and start threads using ThreadPool.
                 //Console.WriteLine("launching {0} tasks...", totalThreads);
                 for (int i = 0; i < totalThreads; i++)
                 {
-                    doneEvents[i] = new ManualResetEvent(false);
-                    solveSituation f = new solveSituation(doneEvents[i], syncHT, allPossibleBoards[i], xTarget, yTarget, lengthCheckX, lengthCheckY);
+                    //doneEvents[i] = new ManualResetEvent(false);
+                    solveSituation f = new solveSituation(_waitEvent, syncHT, allPossibleBoards[i], xTarget, yTarget, lengthCheckX, lengthCheckY);
                     solveArray[i] = f;
                     ThreadPool.QueueUserWorkItem(f.ThreadPoolCallback, i);
                 }
 
                 // Wait for all threads in pool to calculate.
-                WaitHandle.WaitAll(doneEvents);
+                //WaitHandle.WaitAll(doneEvents);
+                _waitEvent.DoneEvent.WaitOne();
                 //Console.WriteLine("All calculations are complete.");
 
                 int oldThreads = totalThreads;
@@ -119,7 +122,7 @@ namespace RushHour_Practicum2
 
     public class solveSituation
     {
-        private ManualResetEvent _doneEvent;
+        private WaitEvent _waitEvent;
         private Vertice board;
         private Vertice _solvedBoard;
         private int xTarget, yTarget, boardWidth, boardHeight;
@@ -133,9 +136,9 @@ namespace RushHour_Practicum2
         public Vertice SolvedBoard { get { return _solvedBoard; } }
 
         // Constructor. 
-        public solveSituation(ManualResetEvent doneEvent, Hashtable syncHT, Vertice board, int xTarget, int yTarget, bool lengthCheckX, bool lengthCheckY)
+        public solveSituation(WaitEvent waitEvent, Hashtable syncHT, Vertice board, int xTarget, int yTarget, bool lengthCheckX, bool lengthCheckY)
         {
-            _doneEvent = doneEvent;
+            _waitEvent = waitEvent;
             this.syncHT = syncHT;
             this.board = board;
             this.xTarget = xTarget;
@@ -150,12 +153,19 @@ namespace RushHour_Practicum2
         // Wrapper method for use with thread pool. 
         public void ThreadPoolCallback(Object threadContext)
         {
-            int threadIndex = (int)threadContext;
-            //Console.WriteLine("thread {0} started...", threadIndex);
-            _possibleBoards = new List<Vertice>(allPossibleMoves(board.state));
-            checkBoards();
-            //Console.WriteLine("thread {0} result calculated...", threadIndex);
-            _doneEvent.Set();
+            try
+            {
+                int threadIndex = (int)threadContext;
+                //Console.WriteLine("thread {0} started...", threadIndex);
+                _possibleBoards = new List<Vertice>(allPossibleMoves(board.state));
+                checkBoards();
+                //Console.WriteLine("thread {0} result calculated...", threadIndex);
+            }
+            finally
+            {
+                if (Interlocked.Decrement(ref _waitEvent.NumerOfThreadsNotYetCompleted) == 0)
+                    _waitEvent.DoneEvent.Set();
+            }
         }
 
         public void checkBoards()
@@ -444,6 +454,17 @@ namespace RushHour_Practicum2
             return test;
         }
         #endregion
+    }
+
+    public class WaitEvent
+    {
+        public ManualResetEvent DoneEvent;
+        public int NumerOfThreadsNotYetCompleted;
+        public WaitEvent(ManualResetEvent _doneEvent, int _numerOfThreadsNotYetCompleted)
+        {
+            DoneEvent = _doneEvent;
+            NumerOfThreadsNotYetCompleted = _numerOfThreadsNotYetCompleted;
+        }
     }
 }
 
