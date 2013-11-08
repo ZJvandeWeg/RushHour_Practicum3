@@ -37,7 +37,8 @@ namespace RushHour_Practicum2
         {
             StringBuilder sb = new StringBuilder(); 
             Vertice node = this;
-            for(int i = 0; i < this.level; i++)
+            while(node.parent != null)
+            //for(int i = 0; i < this.level; i++)
             {
                 sb.Insert(0, node.lastMove + ", ");
                 node = node.parent;

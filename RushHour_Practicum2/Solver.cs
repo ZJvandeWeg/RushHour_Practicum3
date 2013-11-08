@@ -13,7 +13,8 @@ namespace RushHour_Practicum2
         int boardHeight;
         Vertice root;
         Hashtable syncHT;
-        ConcurrentQueue<Vertice> queue;
+        List<ConcurrentQueue<Vertice>> queue;
+        //ConcurrentQueue<Vertice> queue;
 
         public Solver (Board rootBoard, int xTarget, int yTarget, int outputMode)
         {
@@ -26,8 +27,10 @@ namespace RushHour_Practicum2
             HashTable.Add(rootBoard.Hash(), rootBoard);
 
             syncHT = Hashtable.Synchronized(HashTable);
-            queue = new ConcurrentQueue<Vertice>();
-            queue.Enqueue(root);
+            queue = new List<ConcurrentQueue<Vertice>>();
+            queue.Add(new ConcurrentQueue<Vertice>());
+            //queue[root.level] = new ConcurrentQueue<Vertice>();
+            queue[root.level].Enqueue(root);
             solve(xTarget, yTarget, outputMode);
 		}
 
@@ -36,54 +39,56 @@ namespace RushHour_Practicum2
             isSolved mt_isSolved = new isSolved(false);
             bool lengthCheckX = (xTarget - 1) >= 0;
             bool lengthCheckY = (yTarget - 1) >= 0;
-            Vertice dequeue;
+            //Vertice dequeue;
             Vertice solvedGame = null;
-
-            while (!mt_isSolved.b && queue.TryDequeue(out dequeue))
+            for(int i = 0; !mt_isSolved.b && !queue[i].IsEmpty; i++)
+            //while (!mt_isSolved.b && !queue.IsEmpty)
             {
-                Board next = dequeue.state;
-                List<Vertice> moves = new List<Vertice>(allPossibleMoves(next));
+                queue.Add(new ConcurrentQueue<Vertice>());
+                Parallel.ForEach<Vertice>(queue[i], itemOut =>
+                {    
+                    Board next = itemOut.state;
+                    List<Vertice> moves = new List<Vertice>(allPossibleMoves(next));
 
-                foreach (Vertice v in moves)
-                {
-                    if (v.state.board[xTarget, yTarget] == 'x')
+                    foreach (Vertice v in moves)
                     {
-                        //Vertical + other lengths
-                        bool solveX = false;
-                        if (lengthCheckX)
-                            solveX = (v.state.board[xTarget - 1, yTarget] != 'x') &&
-                                (v.state.board[xTarget + 1, yTarget] == 'x');
-                        else
-                            solveX = (v.state.board[xTarget + 1, yTarget] == 'x');
-
-                        bool solveY = false;
-                        if (lengthCheckY)
-                            solveY = (v.state.board[xTarget, yTarget - 1] != 'x') &&
-                                (v.state.board[xTarget, yTarget + 1] == 'x');
-                        else
-                            solveX = (v.state.board[xTarget, yTarget + 1] == 'x');
-
-                        if ((v.state.board[xTarget, yTarget] == 'x') &&
-                            (solveX || solveY))
+                        if (v.state.board[xTarget, yTarget] == 'x')
                         {
-                            lock (mt_isSolved)
+                            //Vertical + other lengths
+                            bool solveX = false;
+                            if (lengthCheckX)
+                                solveX = (v.state.board[xTarget - 1, yTarget] != 'x') &&
+                                    (v.state.board[xTarget + 1, yTarget] == 'x');
+                            else
+                                solveX = (v.state.board[xTarget + 1, yTarget] == 'x');
+
+                            bool solveY = false;
+                            if (lengthCheckY)
+                                solveY = (v.state.board[xTarget, yTarget - 1] != 'x') &&
+                                    (v.state.board[xTarget, yTarget + 1] == 'x');
+                            else
+                                solveX = (v.state.board[xTarget, yTarget + 1] == 'x');
+
+                            if ((v.state.board[xTarget, yTarget] == 'x') &&
+                                (solveX || solveY))
                             {
-                                mt_isSolved.b = true;
+                                lock (mt_isSolved)
+                                {
+                                    mt_isSolved.b = true;
+                                }
                             }
+                            if (mt_isSolved.b)
+                                solvedGame = v;
+
                         }
+
+                        queue[v.level].Enqueue(v);
                         if (mt_isSolved.b)
-                            solvedGame = v;
-
+                            break;
                     }
-                    
-                    dequeue.AddChild(v);
-                    queue.Enqueue(v);
-
-                    if (mt_isSolved.b)
-                        break;
                 }
+                );//End of lambda
             }
-
             if (mt_isSolved.b)
             {
                 if (outputMode == 0)
@@ -91,9 +96,8 @@ namespace RushHour_Practicum2
                 else
                     Console.WriteLine(solvedGame.movesToRoot());
             }
-            else if(queue.IsEmpty)
+            else //if(queue.IsEmpty)
                 Console.WriteLine("Geen oplossing gevonden");
-
         }
 
         /// <summary>
@@ -148,12 +152,15 @@ namespace RushHour_Practicum2
                             Board newBoard = createNewState(currentState, car, 
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
-                            if (!isVisitedState(newBoard))
+                            lock (syncHT.SyncRoot)
                             {
-                                Vertice vResult = new Vertice(newBoard, car + "l" + stepstaken);
-                                //Console.WriteLine(vResult);
-                                result.Add(vResult);
-                                syncHT.Add(newBoard.Hash(), newBoard);
+                                if (!isVisitedState(newBoard))
+                                {
+                                    Vertice vResult = new Vertice(newBoard, car + "l" + stepstaken);
+                                    //Console.WriteLine(vResult);
+                                    result.Add(vResult);
+                                    syncHT.Add(newBoard.Hash(), newBoard);
+                                }
                             }
                         }
 
@@ -174,13 +181,15 @@ namespace RushHour_Practicum2
                             Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
-
-                            if (!isVisitedState(newBoard))
+                            lock (syncHT.SyncRoot)
                             {
-                                Vertice vResult = new Vertice(newBoard, car + "r" + stepstaken);
-                                //Console.WriteLine(vResult);
-                                result.Add(vResult);
-                                syncHT.Add(newBoard.Hash(), newBoard);
+                                if (!isVisitedState(newBoard))
+                                {
+                                    Vertice vResult = new Vertice(newBoard, car + "r" + stepstaken);
+                                    //Console.WriteLine(vResult);
+                                    result.Add(vResult);
+                                    syncHT.Add(newBoard.Hash(), newBoard);
+                                }
                             }
                         }
                     }
@@ -221,13 +230,15 @@ namespace RushHour_Practicum2
                                                     newTopLeftCorner, newBottomRightCorner);
 
                             //Console.WriteLine(newBoard);
-
-                            if (!isVisitedState(newBoard))
+                            lock (syncHT.SyncRoot)
                             {
-                                Vertice vResult = new Vertice(newBoard, car + "u" + stepstaken);
-                                //Console.WriteLine(vResult);
-                                result.Add(vResult);
-                                syncHT.Add(newBoard.Hash(), newBoard);
+                                if (!isVisitedState(newBoard))
+                                {
+                                    Vertice vResult = new Vertice(newBoard, car + "u" + stepstaken);
+                                    //Console.WriteLine(vResult);
+                                    result.Add(vResult);
+                                    syncHT.Add(newBoard.Hash(), newBoard);
+                                }
                             }
                             //Console.WriteLine("Vertical-UP");
                             //Console.WriteLine(currentState);
@@ -254,13 +265,16 @@ namespace RushHour_Practicum2
                             Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
-                            if (!isVisitedState(newBoard))
+                            lock (syncHT.SyncRoot)
                             {
-                                //Console.WriteLine("New Board added");
-                                Vertice vResult = new Vertice(newBoard, car + "d" + stepstaken);
-                                //Console.WriteLine(vResult);
-                                result.Add(vResult);
-                                syncHT.Add(newBoard.Hash(), newBoard);
+                                if (!isVisitedState(newBoard))
+                                {
+                                    //Console.WriteLine("New Board added");
+                                    Vertice vResult = new Vertice(newBoard, car + "d" + stepstaken);
+                                    //Console.WriteLine(vResult);
+                                    result.Add(vResult);
+                                    syncHT.Add(newBoard.Hash(), newBoard);
+                                }
                             }
                         }
                     }
