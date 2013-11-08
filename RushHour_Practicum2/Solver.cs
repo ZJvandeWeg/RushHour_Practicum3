@@ -44,6 +44,75 @@ namespace RushHour_Practicum2
 
             while (!AllSolved && allPossibleBoards.Count > 0)
             {
+                int multiplier = 1;
+                int plus = 0;
+                if (totalThreads > 32)
+                {
+                    int originalThreads = totalThreads;
+                    int olderThreads = totalThreads;
+                    for (plus = 0; plus < originalThreads; plus++)
+                    {
+                        bool stop = false;
+                        for (int i = 32; i > 8; i--)
+                        {
+                            if (totalThreads % i == 0)
+                            {
+                                olderThreads = totalThreads;
+                                totalThreads = i;
+                                stop = true;
+                                break;
+                            }
+                        }
+                        if (stop)
+                            break;
+                        totalThreads += 1;
+                    }
+
+                    multiplier = olderThreads / totalThreads;
+                    totalThreads = olderThreads;
+                    //List<int> arr = new List<int>();
+                    //for (int i = 0; i < originalThreads; i++)
+                    //{ 
+                    //    arr.Add(1);
+                    //}
+                    //for (int i = 0; i < totalThreads; i++)
+                    //{
+                    //    int index = i * multiplier;
+                    //    //Console.WriteLine("Total: " + index);
+                    //    bool aa = (index > (totalThreads * multiplier) - plus);
+                    //    if (!aa)
+                    //    {
+                    //        //arr[index] = 2;
+                    //        for (int n = 0; n < (multiplier - 1); n++)
+                    //        {
+                    //            arr[index + n] = arr[index + n] + 1;
+                    //        }
+                    //    }
+                    //    else
+                    //    {
+                    //        //arr[index] = 3;
+                    //        for (int n = 0; n < (multiplier); n++)
+                    //        {
+                    //            arr[index + n] = arr[index + n] + 1;
+                    //        }
+                    //    }
+                    //}
+                    //foreach(int a in arr)
+                    //{
+                    //    Console.Write(a+",");
+                    //}
+                    //Console.WriteLine("\nTotal: " + totalThreads + " multiplier: " + multiplier + " plus: " + plus + " orig: "+ originalThreads);
+                    //if (plus > 0)
+                    //    Console.ReadKey();
+                }
+
+                //if (totalThreads > 1)
+                //{
+                //    totalThreads /= 2;
+                //    multiplier = 2;
+                //}
+                //Console.WriteLine("Total: " + totalThreads + " multiplier: " + multiplier);
+
                 // One event is used for each Fibonacci object.
                 ManualResetEvent[] doneEvents = new ManualResetEvent[totalThreads];
                 solveSituation[] solveArray = new solveSituation[totalThreads];
@@ -53,7 +122,14 @@ namespace RushHour_Practicum2
                 for (int i = 0; i < totalThreads; i++)
                 {
                     doneEvents[i] = new ManualResetEvent(false);
-                    solveSituation f = new solveSituation(doneEvents[i], syncHT, allPossibleBoards[i], xTarget, yTarget, lengthCheckX, lengthCheckY);
+                    int index = i * multiplier;
+                    int range = multiplier;
+                    if (index >= totalThreads - plus)
+                    {
+                        index = (totalThreads - plus) + (i - (totalThreads - plus)/multiplier) * (multiplier - 1);
+                        range = multiplier - 1;
+                    }
+                    solveSituation f = new solveSituation(doneEvents[i], syncHT, allPossibleBoards.GetRange(index, range), xTarget, yTarget, lengthCheckX, lengthCheckY);
                     solveArray[i] = f;
                     ThreadPool.QueueUserWorkItem(f.ThreadPoolCallback, i);
                 }
@@ -86,7 +162,12 @@ namespace RushHour_Practicum2
                     //Console.WriteLine("Fibonacci({0}) = {1}", f.N, f.FibOfN);
                 }
 
+                //totalThreads = totalThreads % 10
+                //List<int> ls = new List<int>();
+                //ls[2] = 3;
+                //Console.WriteLine(ls);
 
+                 
             }
 
             if (AllSolved)
@@ -120,7 +201,7 @@ namespace RushHour_Practicum2
     public class solveSituation
     {
         private ManualResetEvent _doneEvent;
-        private Vertice board;
+        private List<Vertice> board;
         private Vertice _solvedBoard;
         private int xTarget, yTarget, boardWidth, boardHeight;
         private bool lengthCheckX, lengthCheckY;
@@ -133,15 +214,15 @@ namespace RushHour_Practicum2
         public Vertice SolvedBoard { get { return _solvedBoard; } }
 
         // Constructor. 
-        public solveSituation(ManualResetEvent doneEvent, Hashtable syncHT, Vertice board, int xTarget, int yTarget, bool lengthCheckX, bool lengthCheckY)
+        public solveSituation(ManualResetEvent doneEvent, Hashtable syncHT, List<Vertice> board, int xTarget, int yTarget, bool lengthCheckX, bool lengthCheckY)
         {
             _doneEvent = doneEvent;
             this.syncHT = syncHT;
             this.board = board;
             this.xTarget = xTarget;
             this.yTarget = yTarget;
-            this.boardWidth = board.state.width;
-            this.boardHeight = board.state.height;
+            this.boardWidth = board[0].state.width;
+            this.boardHeight = board[0].state.height;
             this.lengthCheckX = lengthCheckX;
             this.lengthCheckY = lengthCheckY;
             _isSolved = false;
@@ -152,15 +233,22 @@ namespace RushHour_Practicum2
         {
             int threadIndex = (int)threadContext;
             //Console.WriteLine("thread {0} started...", threadIndex);
-            _possibleBoards = new List<Vertice>(allPossibleMoves(board.state));
-            checkBoards();
+            _possibleBoards = new List<Vertice>();
+            foreach (Vertice _vt in board)
+            {
+                List<Vertice> moves = allPossibleMoves(_vt.state);
+                _possibleBoards.AddRange(moves);
+                checkBoards(_vt, moves);
+                if (_isSolved == true)
+                    break;
+            }
             //Console.WriteLine("thread {0} result calculated...", threadIndex);
             _doneEvent.Set();
         }
 
-        public void checkBoards()
+        public void checkBoards(Vertice check, List<Vertice> moves)
         {
-            foreach (Vertice v in _possibleBoards)
+            foreach (Vertice v in moves)
             {
                 if (v.state.board[xTarget, yTarget] == 'x')
                 {
@@ -189,7 +277,7 @@ namespace RushHour_Practicum2
 
                 }
 
-                board.AddChild(v);
+                check.AddChild(v);
                 //queue.Enqueue(v);
 
                 if (_isSolved)
