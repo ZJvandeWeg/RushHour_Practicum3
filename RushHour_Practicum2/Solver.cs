@@ -80,7 +80,7 @@ namespace RushHour_Practicum2
                                 solvedGame = v;
                         }
                         v.level = itemOut.level + 1;
-                        //Console.WriteLine(v.level);
+                        Console.WriteLine(v.level);
                         queue[v.level].Enqueue(v);
                         if (mt_isSolved.b)
                             break;
