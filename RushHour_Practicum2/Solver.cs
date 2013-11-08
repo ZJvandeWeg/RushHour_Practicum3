@@ -45,73 +45,23 @@ namespace RushHour_Practicum2
             while (!AllSolved && allPossibleBoards.Count > 0)
             {
                 int multiplier = 1;
-                int plus = 0;
                 if (totalThreads > 32)
                 {
                     int originalThreads = totalThreads;
-                    int olderThreads = totalThreads;
-                    for (plus = 0; plus < originalThreads; plus++)
+                    for (int i = 32; i > 0; i--)
                     {
-                        bool stop = false;
-                        for (int i = 32; i > 8; i--)
+                        if (totalThreads % i == 0)
                         {
-                            if (totalThreads % i == 0)
-                            {
-                                olderThreads = totalThreads;
-                                totalThreads = i;
-                                stop = true;
-                                break;
-                            }
-                        }
-                        if (stop)
+                            totalThreads = i;
                             break;
-                        totalThreads += 1;
+                        }
                     }
 
-                    multiplier = olderThreads / totalThreads;
-                    totalThreads = olderThreads;
-                    //List<int> arr = new List<int>();
-                    //for (int i = 0; i < originalThreads; i++)
-                    //{ 
-                    //    arr.Add(1);
-                    //}
-                    //for (int i = 0; i < totalThreads; i++)
-                    //{
-                    //    int index = i * multiplier;
-                    //    //Console.WriteLine("Total: " + index);
-                    //    bool aa = (index > (totalThreads * multiplier) - plus);
-                    //    if (!aa)
-                    //    {
-                    //        //arr[index] = 2;
-                    //        for (int n = 0; n < (multiplier - 1); n++)
-                    //        {
-                    //            arr[index + n] = arr[index + n] + 1;
-                    //        }
-                    //    }
-                    //    else
-                    //    {
-                    //        //arr[index] = 3;
-                    //        for (int n = 0; n < (multiplier); n++)
-                    //        {
-                    //            arr[index + n] = arr[index + n] + 1;
-                    //        }
-                    //    }
-                    //}
-                    //foreach(int a in arr)
-                    //{
-                    //    Console.Write(a+",");
-                    //}
-                    //Console.WriteLine("\nTotal: " + totalThreads + " multiplier: " + multiplier + " plus: " + plus + " orig: "+ originalThreads);
-                    //if (plus > 0)
-                    //    Console.ReadKey();
+                    multiplier = originalThreads / totalThreads;
                 }
-
-                //if (totalThreads > 1)
-                //{
-                //    totalThreads /= 2;
-                //    multiplier = 2;
-                //}
-                //Console.WriteLine("Total: " + totalThreads + " multiplier: " + multiplier);
+                Console.WriteLine("Total: " + totalThreads + " multiplier: " + multiplier);
+                if (totalThreads < 5)
+                    Thread.Sleep(2000);
 
                 // One event is used for each Fibonacci object.
                 ManualResetEvent[] doneEvents = new ManualResetEvent[totalThreads];
@@ -122,14 +72,7 @@ namespace RushHour_Practicum2
                 for (int i = 0; i < totalThreads; i++)
                 {
                     doneEvents[i] = new ManualResetEvent(false);
-                    int index = i * multiplier;
-                    int range = multiplier;
-                    if (index >= totalThreads - plus)
-                    {
-                        index = (totalThreads - plus) + (i - (totalThreads - plus)/multiplier) * (multiplier - 1);
-                        range = multiplier - 1;
-                    }
-                    solveSituation f = new solveSituation(doneEvents[i], syncHT, allPossibleBoards.GetRange(index, range), xTarget, yTarget, lengthCheckX, lengthCheckY);
+                    solveSituation f = new solveSituation(doneEvents[i], syncHT, allPossibleBoards.GetRange(i * multiplier, multiplier), xTarget, yTarget, lengthCheckX, lengthCheckY);
                     solveArray[i] = f;
                     ThreadPool.QueueUserWorkItem(f.ThreadPoolCallback, i);
                 }
