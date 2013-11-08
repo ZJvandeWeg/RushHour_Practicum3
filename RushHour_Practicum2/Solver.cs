@@ -23,7 +23,7 @@ namespace RushHour_Practicum2
             
             Hashtable HashTable = new Hashtable();
             root = new Vertice(rootBoard, null);
-
+            root.level = 0;
             HashTable.Add(rootBoard.Hash(), rootBoard);
 
             syncHT = Hashtable.Synchronized(HashTable);
@@ -42,14 +42,13 @@ namespace RushHour_Practicum2
             //Vertice dequeue;
             Vertice solvedGame = null;
             for(int i = 0; !mt_isSolved.b && !queue[i].IsEmpty; i++)
-            //while (!mt_isSolved.b && !queue.IsEmpty)
             {
                 queue.Add(new ConcurrentQueue<Vertice>());
+                
                 Parallel.ForEach<Vertice>(queue[i], itemOut =>
-                {    
-                    Board next = itemOut.state;
-                    List<Vertice> moves = new List<Vertice>(allPossibleMoves(next));
-
+                {
+                    queue[i].TryDequeue(out itemOut);
+                    List<Vertice> moves = new List<Vertice>(allPossibleMoves(itemOut));
                     foreach (Vertice v in moves)
                     {
                         if (v.state.board[xTarget, yTarget] == 'x')
@@ -79,15 +78,18 @@ namespace RushHour_Practicum2
                             }
                             if (mt_isSolved.b)
                                 solvedGame = v;
-
                         }
-
+                        v.level = itemOut.level + 1;
+                        //Console.WriteLine(v.level);
                         queue[v.level].Enqueue(v);
                         if (mt_isSolved.b)
                             break;
                     }
                 }
                 );//End of lambda
+                
+                if (mt_isSolved.b)
+                    break;
             }
             if (mt_isSolved.b)
             {
@@ -105,8 +107,9 @@ namespace RushHour_Practicum2
         /// </summary>
         /// <param name="currentState">From which state to check</param>
         /// <returns>Unvisited states which can be got to in 1 move</returns>
-        private List<Vertice> allPossibleMoves(Board currentState)
+        private List<Vertice> allPossibleMoves(Vertice current)
         {
+            Board currentState = current.state;
             List<Vertice> result = new List<Vertice>();
             List<char> checkedCars = new List<char>();
             for (int y = 0; y < this.boardHeight; y++)
@@ -119,10 +122,7 @@ namespace RushHour_Practicum2
                     if (car == '.' || checkedCars.Contains(car))
                         continue;
 
-                    //Console.WriteLine("Checking: " + car);
                     //What direction does the car go? NS || WE
-
-                    //Console.WriteLine("x = " + x + " car = " + car + currentState.board[x + 1, y]);
                     if (x+1 < this.boardWidth && currentState.board[x+1,y] == car)
                     {
                         //Console.WriteLine("Horizontal");
@@ -140,7 +140,6 @@ namespace RushHour_Practicum2
                         // Xy
                         for (int i = x - 1; i >= 0; i--)
                         {
-                            //Console.WriteLine("Horizontal-LEFT");
                             if (currentState.board[i, y] != '.')
                                 break;
                             
@@ -157,7 +156,8 @@ namespace RushHour_Practicum2
                                 if (!isVisitedState(newBoard))
                                 {
                                     Vertice vResult = new Vertice(newBoard, car + "l" + stepstaken);
-                                    //Console.WriteLine(vResult);
+                                    vResult.parent = current;
+                                    vResult.level = vResult.parent.level;
                                     result.Add(vResult);
                                     syncHT.Add(newBoard.Hash(), newBoard);
                                 }
@@ -167,7 +167,6 @@ namespace RushHour_Practicum2
                         //Now scan right of the car
                         for (int i = endCar + 1; i < this.boardWidth; i++)
                         {
-                            //Console.WriteLine("Horizontal-RIGHT");
                             if (currentState.board[i, y] != '.')
                                 break;
 
@@ -175,8 +174,6 @@ namespace RushHour_Practicum2
 
                             int[] newTopLeftCorner = { x + stepstaken, y };
                             int[] newBottomRightCorner = { endCar + stepstaken, y };
-                            //Console.WriteLine("" + newTopLeftCorner[0] + newTopLeftCorner[1]);
-                            //Console.WriteLine("" + newBottomRightCorner[0] + newBottomRightCorner[1]);
 
                             Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
@@ -186,7 +183,8 @@ namespace RushHour_Practicum2
                                 if (!isVisitedState(newBoard))
                                 {
                                     Vertice vResult = new Vertice(newBoard, car + "r" + stepstaken);
-                                    //Console.WriteLine(vResult);
+                                    vResult.parent = current;
+                                    vResult.level = vResult.parent.level;
                                     result.Add(vResult);
                                     syncHT.Add(newBoard.Hash(), newBoard);
                                 }
@@ -195,7 +193,6 @@ namespace RushHour_Practicum2
                     }
                     else
                     {
-                        //Console.WriteLine("Vertical");
                         //Set the old positions
                         int[] oldTopLeftCorner = { x, y };
 
@@ -204,16 +201,11 @@ namespace RushHour_Practicum2
                             endCar++;
                         int[] oldBottomRightCorner = { x, endCar };
 
-                        //Console.WriteLine("" + oldTopLeftCorner[0] + oldTopLeftCorner[1]);
-                        //Console.WriteLine("" + oldBottomRightCorner[0] + oldBottomRightCorner[1]);
 
                         //Now look up and down for the all moves
                         //Looking up here
                         for (int i = y - 1; i >= 0; i--)
                         {
-                            //Console.WriteLine("Vertical-UP");
-                            //Console.WriteLine(currentState);
-                            //Console.WriteLine("Vertical-UP");
                             if (currentState.board[x, i] != '.')
                                 break;
 
@@ -222,20 +214,17 @@ namespace RushHour_Practicum2
                             int[] newTopLeftCorner = { x, i };
                             int[] newBottomRightCorner = { x, endCar - stepstaken };
 
-                            //Console.WriteLine("" + newTopLeftCorner[0] + newTopLeftCorner[1]);
-                            //Console.WriteLine("" + newBottomRightCorner[0] + newBottomRightCorner[1]);
-
                             Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
 
-                            //Console.WriteLine(newBoard);
                             lock (syncHT.SyncRoot)
                             {
                                 if (!isVisitedState(newBoard))
                                 {
                                     Vertice vResult = new Vertice(newBoard, car + "u" + stepstaken);
-                                    //Console.WriteLine(vResult);
+                                    vResult.parent = current;
+                                    vResult.level = vResult.parent.level;
                                     result.Add(vResult);
                                     syncHT.Add(newBoard.Hash(), newBoard);
                                 }
@@ -248,9 +237,6 @@ namespace RushHour_Practicum2
                         //Now scan below the car
                         for (int i = endCar + 1; i < this.boardHeight; i++)
                         {
-                            //Console.WriteLine("Vertical-DOWN");
-                            //Console.WriteLine("Vertical-DOWN: " + i);
-                            //Console.WriteLine("Vertical-DOWN: " + currentState.board[x, i]);
                             if (currentState.board[x, i] != '.')
                                 break;
 
@@ -259,8 +245,6 @@ namespace RushHour_Practicum2
                             int[] newTopLeftCorner = { x, y + stepstaken };
                             int[] newBottomRightCorner = { x, endCar + stepstaken };
 
-                            //Console.WriteLine("" + newTopLeftCorner[0] + newTopLeftCorner[1]);
-                            //Console.WriteLine("" + newBottomRightCorner[0] + newBottomRightCorner[1]);
 
                             Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
@@ -269,17 +253,16 @@ namespace RushHour_Practicum2
                             {
                                 if (!isVisitedState(newBoard))
                                 {
-                                    //Console.WriteLine("New Board added");
                                     Vertice vResult = new Vertice(newBoard, car + "d" + stepstaken);
-                                    //Console.WriteLine(vResult);
+                                    vResult.parent = current;
+                                    vResult.level = vResult.parent.level;
                                     result.Add(vResult);
                                     syncHT.Add(newBoard.Hash(), newBoard);
                                 }
                             }
                         }
                     }
-                    //Console.ReadKey();
-                    //Console.WriteLine("");
+                    
                     checkedCars.Add(car);
                 }
                 return result;
