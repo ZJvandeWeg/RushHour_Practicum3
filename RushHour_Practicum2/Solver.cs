@@ -49,7 +49,7 @@ namespace RushHour_Practicum2
                 solveSituation[] solveArray = new solveSituation[totalThreads];
 
                 // Configure and start threads using ThreadPool.
-                Console.WriteLine("launching {0} tasks...", totalThreads);
+                //Console.WriteLine("launching {0} tasks...", totalThreads);
                 for (int i = 0; i < totalThreads; i++)
                 {
                     doneEvents[i] = new ManualResetEvent(false);
@@ -60,7 +60,7 @@ namespace RushHour_Practicum2
 
                 // Wait for all threads in pool to calculate.
                 WaitHandle.WaitAll(doneEvents);
-                Console.WriteLine("All calculations are complete.");
+                //Console.WriteLine("All calculations are complete.");
 
                 int oldThreads = totalThreads;
                 totalThreads = 0;
@@ -249,12 +249,15 @@ namespace RushHour_Practicum2
                             Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
-                            if (!isVisitedState(newBoard))
+                            lock (syncHT)
                             {
-                                Vertice vResult = new Vertice(newBoard, car + "l" + stepstaken);
-                                //Console.WriteLine(vResult);
-                                result.Add(vResult);
-                                syncHT.Add(newBoard.Hash(), newBoard);
+                                if (!isVisitedState(newBoard))
+                                {
+                                    Vertice vResult = new Vertice(newBoard, car + "l" + stepstaken);
+                                    //Console.WriteLine(vResult);
+                                    result.Add(vResult);
+                                    syncHT.Add(newBoard.Hash(), newBoard);
+                                }
                             }
                         }
 
@@ -276,12 +279,15 @@ namespace RushHour_Practicum2
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
 
-                            if (!isVisitedState(newBoard))
+                            lock (syncHT)
                             {
-                                Vertice vResult = new Vertice(newBoard, car + "r" + stepstaken);
-                                //Console.WriteLine(vResult);
-                                result.Add(vResult);
-                                syncHT.Add(newBoard.Hash(), newBoard);
+                                if (!isVisitedState(newBoard))
+                                {
+                                    Vertice vResult = new Vertice(newBoard, car + "r" + stepstaken);
+                                    //Console.WriteLine(vResult);
+                                    result.Add(vResult);
+                                    syncHT.Add(newBoard.Hash(), newBoard);
+                                }
                             }
                         }
                     }
@@ -323,12 +329,15 @@ namespace RushHour_Practicum2
 
                             //Console.WriteLine(newBoard);
 
-                            if (!isVisitedState(newBoard))
+                            lock (syncHT)
                             {
-                                Vertice vResult = new Vertice(newBoard, car + "u" + stepstaken);
-                                //Console.WriteLine(vResult);
-                                result.Add(vResult);
-                                syncHT.Add(newBoard.Hash(), newBoard);
+                                if (!isVisitedState(newBoard))
+                                {
+                                    Vertice vResult = new Vertice(newBoard, car + "u" + stepstaken);
+                                    //Console.WriteLine(vResult);
+                                    result.Add(vResult);
+                                    syncHT.Add(newBoard.Hash(), newBoard);
+                                }
                             }
                             //Console.WriteLine("Vertical-UP");
                             //Console.WriteLine(currentState);
@@ -355,13 +364,16 @@ namespace RushHour_Practicum2
                             Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
-                            if (!isVisitedState(newBoard))
+                            lock (syncHT)
                             {
-                                //Console.WriteLine("New Board added");
-                                Vertice vResult = new Vertice(newBoard, car + "d" + stepstaken);
-                                //Console.WriteLine(vResult);
-                                result.Add(vResult);
-                                syncHT.Add(newBoard.Hash(), newBoard);
+                                if (!isVisitedState(newBoard))
+                                {
+                                    //Console.WriteLine("New Board added");
+                                    Vertice vResult = new Vertice(newBoard, car + "d" + stepstaken);
+                                    //Console.WriteLine(vResult);
+                                    result.Add(vResult);
+                                    syncHT.Add(newBoard.Hash(), newBoard);
+                                }
                             }
                         }
                     }
