@@ -19,7 +19,6 @@ namespace RushHour_Practicum2
         {
             boardWidth = rootBoard.width;
             boardHeight = rootBoard.height;
-            
             Hashtable HashTable = new Hashtable();
             root = new Vertice(rootBoard, null);
 
@@ -33,67 +32,169 @@ namespace RushHour_Practicum2
 
         public void solve(int xTarget, int yTarget, int outputMode)
         {
-            isSolved mt_isSolved = new isSolved(false);
+            bool AllSolved = false;
             bool lengthCheckX = (xTarget - 1) >= 0;
             bool lengthCheckY = (yTarget - 1) >= 0;
-            Vertice dequeue;
+            //Vertice dequeue;
             Vertice solvedGame = null;
 
-            while (!mt_isSolved.b && queue.TryDequeue(out dequeue))
+            int totalThreads = 1;
+            List<Vertice> allPossibleBoards = new List<Vertice>();
+            allPossibleBoards.Add(root);
+
+            while (!AllSolved && allPossibleBoards.Count > 0)
             {
-                Board next = dequeue.state;
-                List<Vertice> moves = new List<Vertice>(allPossibleMoves(next));
+                // One event is used for each Fibonacci object.
+                ManualResetEvent[] doneEvents = new ManualResetEvent[totalThreads];
+                solveSituation[] solveArray = new solveSituation[totalThreads];
 
-                foreach (Vertice v in moves)
+                // Configure and start threads using ThreadPool.
+                Console.WriteLine("launching {0} tasks...", totalThreads);
+                for (int i = 0; i < totalThreads; i++)
                 {
-                    if (v.state.board[xTarget, yTarget] == 'x')
-                    {
-                        //Vertical + other lengths
-                        bool solveX = false;
-                        if (lengthCheckX)
-                            solveX = (v.state.board[xTarget - 1, yTarget] != 'x') &&
-                                (v.state.board[xTarget + 1, yTarget] == 'x');
-                        else
-                            solveX = (v.state.board[xTarget + 1, yTarget] == 'x');
-
-                        bool solveY = false;
-                        if (lengthCheckY)
-                            solveY = (v.state.board[xTarget, yTarget - 1] != 'x') &&
-                                (v.state.board[xTarget, yTarget + 1] == 'x');
-                        else
-                            solveX = (v.state.board[xTarget, yTarget + 1] == 'x');
-
-                        if ((v.state.board[xTarget, yTarget] == 'x') &&
-                            (solveX || solveY))
-                        {
-                            lock (mt_isSolved)
-                            {
-                                mt_isSolved.b = true;
-                            }
-                        }
-                        if (mt_isSolved.b)
-                            solvedGame = v;
-
-                    }
-                    
-                    dequeue.AddChild(v);
-                    queue.Enqueue(v);
-
-                    if (mt_isSolved.b)
-                        break;
+                    doneEvents[i] = new ManualResetEvent(false);
+                    solveSituation f = new solveSituation(doneEvents[i], syncHT, allPossibleBoards[i], xTarget, yTarget, lengthCheckX, lengthCheckY);
+                    solveArray[i] = f;
+                    ThreadPool.QueueUserWorkItem(f.ThreadPoolCallback, i);
                 }
+
+                // Wait for all threads in pool to calculate.
+                WaitHandle.WaitAll(doneEvents);
+                Console.WriteLine("All calculations are complete.");
+
+                int oldThreads = totalThreads;
+                totalThreads = 0;
+                allPossibleBoards = new List<Vertice>();
+
+                // Display the results. 
+                for (int i = 0; i < oldThreads; i++)
+                {
+                    solveSituation f = solveArray[i];
+                    totalThreads += f.PossibleBoards.Count;
+                    allPossibleBoards.AddRange(f.PossibleBoards);
+                    //Console.WriteLine(totalThreads);
+                    //Console.ReadKey();
+
+
+                    if (f.IsSolved)
+                    {
+                        AllSolved = true;
+                        solvedGame = f.SolvedBoard;
+                        break;
+                    }
+
+                    //Console.WriteLine("Fibonacci({0}) = {1}", f.N, f.FibOfN);
+                }
+
+
             }
 
-            if (mt_isSolved.b)
+            if (AllSolved)
             {
                 if (outputMode == 0)
                     Console.WriteLine(solvedGame.countToRoot());
                 else
                     Console.WriteLine(solvedGame.movesToRoot());
             }
-            else if(queue.IsEmpty)
+            else if (allPossibleBoards.Count == 0)
                 Console.WriteLine("Geen oplossing gevonden");
 
+
+
+
+
+
+
+        }
+    }
+
+    class isSolved
+    {
+        public bool b;
+        public isSolved(bool b)
+        {
+            this.b = b;
+        }
+    }
+
+    public class solveSituation
+    {
+        private ManualResetEvent _doneEvent;
+        private Vertice board;
+        private Vertice _solvedBoard;
+        private int xTarget, yTarget, boardWidth, boardHeight;
+        private bool lengthCheckX, lengthCheckY;
+        private bool _isSolved;
+        private List<Vertice> _possibleBoards;
+        private Hashtable syncHT;
+
+        public bool IsSolved { get { return _isSolved; } }
+        public List<Vertice> PossibleBoards { get { return _possibleBoards; } }
+        public Vertice SolvedBoard { get { return _solvedBoard; } }
+
+        // Constructor. 
+        public solveSituation(ManualResetEvent doneEvent, Hashtable syncHT, Vertice board, int xTarget, int yTarget, bool lengthCheckX, bool lengthCheckY)
+        {
+            _doneEvent = doneEvent;
+            this.syncHT = syncHT;
+            this.board = board;
+            this.xTarget = xTarget;
+            this.yTarget = yTarget;
+            this.boardWidth = board.state.width;
+            this.boardHeight = board.state.height;
+            this.lengthCheckX = lengthCheckX;
+            this.lengthCheckY = lengthCheckY;
+            _isSolved = false;
+        }
+
+        // Wrapper method for use with thread pool. 
+        public void ThreadPoolCallback(Object threadContext)
+        {
+            int threadIndex = (int)threadContext;
+            //Console.WriteLine("thread {0} started...", threadIndex);
+            _possibleBoards = new List<Vertice>(allPossibleMoves(board.state));
+            checkBoards();
+            //Console.WriteLine("thread {0} result calculated...", threadIndex);
+            _doneEvent.Set();
+        }
+
+        public void checkBoards()
+        {
+            foreach (Vertice v in _possibleBoards)
+            {
+                if (v.state.board[xTarget, yTarget] == 'x')
+                {
+                    //Vertical + other lengths
+                    bool solveX = false;
+                    if (lengthCheckX)
+                        solveX = (v.state.board[xTarget - 1, yTarget] != 'x') &&
+                            (v.state.board[xTarget + 1, yTarget] == 'x');
+                    else
+                        solveX = (v.state.board[xTarget + 1, yTarget] == 'x');
+
+                    bool solveY = false;
+                    if (lengthCheckY)
+                        solveY = (v.state.board[xTarget, yTarget - 1] != 'x') &&
+                            (v.state.board[xTarget, yTarget + 1] == 'x');
+                    else
+                        solveX = (v.state.board[xTarget, yTarget + 1] == 'x');
+
+                    if ((v.state.board[xTarget, yTarget] == 'x') &&
+                        (solveX || solveY))
+                    {
+                        _isSolved = true;
+                    }
+                    if (_isSolved)
+                        _solvedBoard = v;
+
+                }
+
+                board.AddChild(v);
+                //queue.Enqueue(v);
+
+                if (_isSolved)
+                    break;
+            }
         }
 
         /// <summary>
@@ -119,15 +220,15 @@ namespace RushHour_Practicum2
                     //What direction does the car go? NS || WE
 
                     //Console.WriteLine("x = " + x + " car = " + car + currentState.board[x + 1, y]);
-                    if (x+1 < this.boardWidth && currentState.board[x+1,y] == car)
+                    if (x + 1 < this.boardWidth && currentState.board[x + 1, y] == car)
                     {
                         //Console.WriteLine("Horizontal");
                         //Horizontal moving
                         //Grab position of the car
-                        int[] oldTopLeftCorner = {x,y};
+                        int[] oldTopLeftCorner = { x, y };
 
                         int endCar = x + 1;
-                        while(endCar + 1 < this.boardWidth && currentState.board[endCar + 1, y] == car)
+                        while (endCar + 1 < this.boardWidth && currentState.board[endCar + 1, y] == car)
                             endCar++;
                         int[] oldBottomRightCorner = { endCar, y };
 
@@ -139,13 +240,13 @@ namespace RushHour_Practicum2
                             //Console.WriteLine("Horizontal-LEFT");
                             if (currentState.board[i, y] != '.')
                                 break;
-                            
+
                             int stepstaken = oldTopLeftCorner[0] - i;
                             //Create new Board 
-                            int[] newTopLeftCorner = {i, y};
-                            int[] newBottomRightCorner = { endCar - stepstaken, y};
+                            int[] newTopLeftCorner = { i, y };
+                            int[] newBottomRightCorner = { endCar - stepstaken, y };
 
-                            Board newBoard = createNewState(currentState, car, 
+                            Board newBoard = createNewState(currentState, car,
                                                     oldTopLeftCorner, oldBottomRightCorner,
                                                     newTopLeftCorner, newBottomRightCorner);
                             if (!isVisitedState(newBoard))
@@ -268,7 +369,8 @@ namespace RushHour_Practicum2
                     //Console.WriteLine("");
                     checkedCars.Add(car);
                 }
-                return result;
+
+            return result;
         }
 
         /// <summary>
@@ -291,7 +393,7 @@ namespace RushHour_Practicum2
             //Remove the old car
             //Do we move NS || WE
             bool goesVertical = (x == oldBottomRightCorner[0]);
-            
+
             if (goesVertical)
             {
                 // HORI +1
@@ -304,14 +406,14 @@ namespace RushHour_Practicum2
                 for (int i = x; i < oldBottomRightCorner[0] + 1; i++)
                     result.board[i, y] = '.';
             }
-            
+
             //Draw the car on it's new spot. :)
             x = newTopLeftCorner[0];
             y = newTopLeftCorner[1];
 
             if (goesVertical)
             {
-                for(int i = y; i < newBottomRightCorner[1] + 1; i++)
+                for (int i = y; i < newBottomRightCorner[1] + 1; i++)
                     result.board[x, i] = car;
             }
             else
@@ -330,15 +432,6 @@ namespace RushHour_Practicum2
             return test;
         }
         #endregion
-    }
-
-    class isSolved
-    {
-        public bool b;
-        public isSolved(bool b)
-        {
-            this.b = b;
-        }
     }
 }
 
