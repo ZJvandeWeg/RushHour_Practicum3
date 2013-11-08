@@ -11,79 +11,44 @@ namespace RushHour_Practicum2
 	{
         int boardWidth;
         int boardHeight;
+        int xTarget;
+        int yTarget;
+        int outputMode;
         Vertice root;
+        Vertice solvedVertice;
         Hashtable syncHT;
-        ConcurrentQueue<Vertice> queue;
+        isSolved mt_isSolved = new isSolved(false);
+        bool lengthCheckX;
+        bool lengthCheckY;
+        Vertice solvedGame = null;
+        //ConcurrentQueue<Vertice> queue;
 
         public Solver (Board rootBoard, int xTarget, int yTarget, int outputMode)
         {
             boardWidth = rootBoard.width;
             boardHeight = rootBoard.height;
-            
+            this.xTarget = xTarget;
+            this.yTarget = yTarget;
+            this.outputMode = outputMode;
+
             Hashtable HashTable = new Hashtable();
             root = new Vertice(rootBoard, null);
+            solvedVertice = null;
 
             HashTable.Add(rootBoard.Hash(), rootBoard);
-
+            lengthCheckX = (xTarget - 1) >= 0;
+            lengthCheckY = (yTarget - 1) >= 0;
             syncHT = Hashtable.Synchronized(HashTable);
-            queue = new ConcurrentQueue<Vertice>();
-            queue.Enqueue(root);
-            solve(xTarget, yTarget, outputMode);
+            //queue = new ConcurrentQueue<Vertice>();
+            //queue.Enqueue(root);
+            solve(root);
 		}
 
-        public void solve(int xTarget, int yTarget, int outputMode)
+        public void solve(Vertice vertice)
         {
-            isSolved mt_isSolved = new isSolved(false);
-            bool lengthCheckX = (xTarget - 1) >= 0;
-            bool lengthCheckY = (yTarget - 1) >= 0;
-            Vertice dequeue;
-            Vertice solvedGame = null;
+            ThreadPool.QueueUserWorkItem(new WaitCallback(checkBoard), vertice);
 
-            while (!mt_isSolved.b && queue.TryDequeue(out dequeue))
-            {
-                Board next = dequeue.state;
-                List<Vertice> moves = new List<Vertice>(allPossibleMoves(next));
-
-                foreach (Vertice v in moves)
-                {
-                    if (v.state.board[xTarget, yTarget] == 'x')
-                    {
-                        //Vertical + other lengths
-                        bool solveX = false;
-                        if (lengthCheckX)
-                            solveX = (v.state.board[xTarget - 1, yTarget] != 'x') &&
-                                (v.state.board[xTarget + 1, yTarget] == 'x');
-                        else
-                            solveX = (v.state.board[xTarget + 1, yTarget] == 'x');
-
-                        bool solveY = false;
-                        if (lengthCheckY)
-                            solveY = (v.state.board[xTarget, yTarget - 1] != 'x') &&
-                                (v.state.board[xTarget, yTarget + 1] == 'x');
-                        else
-                            solveX = (v.state.board[xTarget, yTarget + 1] == 'x');
-
-                        if ((v.state.board[xTarget, yTarget] == 'x') &&
-                            (solveX || solveY))
-                        {
-                            lock (mt_isSolved)
-                            {
-                                mt_isSolved.b = true;
-                            }
-                        }
-                        if (mt_isSolved.b)
-                            solvedGame = v;
-
-                    }
-                    
-                    dequeue.AddChild(v);
-                    queue.Enqueue(v);
-
-                    if (mt_isSolved.b)
-                        break;
-                }
-            }
-
+            //Na alle Treads, of als ze allemaal gekilld zijn.
             if (mt_isSolved.b)
             {
                 if (outputMode == 0)
@@ -91,10 +56,60 @@ namespace RushHour_Practicum2
                 else
                     Console.WriteLine(solvedGame.movesToRoot());
             }
-            else if(queue.IsEmpty)
+            else
                 Console.WriteLine("Geen oplossing gevonden");
-
         }
+
+        public void checkBoard(object o)
+        {
+            Vertice board = (Vertice) o;
+            if (mt_isSolved.b)
+                return;
+
+            List<Vertice> moves = new List<Vertice>(allPossibleMoves(board.state));
+
+            foreach (Vertice v in moves)
+            {
+                if (v.state.board[this.xTarget, this.yTarget] == 'x')
+                {
+                    //Vertical + other lengths
+                    bool solveX = false;
+                    if (lengthCheckX)
+                        solveX = (v.state.board[xTarget - 1, yTarget] != 'x') &&
+                            (v.state.board[xTarget + 1, yTarget] == 'x');
+                    else
+                        solveX = (v.state.board[xTarget + 1, yTarget] == 'x');
+
+                    bool solveY = false;
+                    if (lengthCheckY)
+                        solveY = (v.state.board[xTarget, yTarget - 1] != 'x') &&
+                            (v.state.board[xTarget, yTarget + 1] == 'x');
+                    else
+                        solveX = (v.state.board[xTarget, yTarget + 1] == 'x');
+
+                    if ((v.state.board[xTarget, yTarget] == 'x') &&
+                        (solveX || solveY))
+                    {
+                        lock (mt_isSolved)
+                        {
+                            mt_isSolved.b = true;
+                        }
+                    }
+                    if (mt_isSolved.b)
+                        this.solvedVertice = v;
+
+                }
+
+                if (mt_isSolved.b)
+                    break;
+
+                //dequeue.AddChild(v);
+                ThreadPool.QueueUserWorkItem(new WaitCallback(checkBoard), v);
+                // queue.Enqueue(v);
+
+            }
+        }
+
 
         /// <summary>
         /// For the state given, return all the possible moves.

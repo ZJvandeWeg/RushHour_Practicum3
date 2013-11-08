@@ -18,20 +18,20 @@ namespace RushHour_Practicum2
             this.lastMove = lastmove;
         }
 
-        public void AddChild(Vertice v)
-        {
-            v.parent = this;
-            v.level = this.level + 1;
-            children.Add(v);
-        }
+        //public void AddChild(Vertice v)
+        //{
+        //    v.parent = this;
+        //    v.level = this.level + 1;
+        //    children.Add(v);
+        //}
 
-        public void AddChild(Board newState, string lastMove)
-        {
-            Vertice child = new Vertice(newState, lastMove);
-            child.parent = this;
-            child.level = this.level + 1;
-            children.Add(child);
-        }
+        //public void AddChild(Board newState, string lastMove)
+        //{
+        //    Vertice child = new Vertice(newState, lastMove);
+        //    child.parent = this;
+        //    child.level = this.level + 1;
+        //    children.Add(child);
+        //}
 
         public string movesToRoot()
         {
