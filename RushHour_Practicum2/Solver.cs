@@ -90,15 +90,8 @@ namespace RushHour_Practicum2
                 counter.AddCount();
                 lock (statesAtLevel)
                 {
-                    try
-                    {
-                        statesAtLevel[v.level]++;
-                    }
-                    catch (Exception)
-                    {
                         statesAtLevel.Add(0);
                         statesAtLevel[v.level]++;
-                    }
                 }
                 ThreadPool.QueueUserWorkItem((randomstringjustbecauseihavetotypesomething) => 
                     { 
@@ -109,15 +102,8 @@ namespace RushHour_Practicum2
             }
             lock (doneAtLevel)
             {
-                try
-                {
-                    doneAtLevel[vertice.level]++;
-                }
-                catch (Exception)
-                {
                     doneAtLevel.Add(0);
                     doneAtLevel[vertice.level]++;
-                }
             }
         }
         private bool winningBoard(Vertice v)
