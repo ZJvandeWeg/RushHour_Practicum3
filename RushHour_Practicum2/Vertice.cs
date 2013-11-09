@@ -32,20 +32,6 @@ namespace RushHour_Practicum2
             return sb.ToString();
         }
 
-        public int countToRoot()
-        {
-            Vertice node = this;
-            int i = 0;
-            while (node.parent != null)
-            {
-                i++;
-                node = node.parent;
-            }
-
-            return i;
-            
-        }
-
         public override string ToString()
         {
             return this.state.ToString();

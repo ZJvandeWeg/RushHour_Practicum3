@@ -58,12 +58,17 @@ namespace RushHour_Practicum2
             if (SolvedVertice != null)
             {
                 if (outputMode == 0)
-                    Console.WriteLine(SolvedVertice.countToRoot());
+                    Console.WriteLine(SolvedVertice.level);
                 else
                     Console.WriteLine(SolvedVertice.movesToRoot());
             }
             else
-                Console.WriteLine("Geen oplossing gevonden");
+            {
+                if (outputMode == 0)
+                    Console.WriteLine("-1");
+                else
+                    Console.WriteLine("Geen oplossing gevonden");
+            }
         }
 
         public void solve(Vertice vertice)
@@ -80,7 +85,8 @@ namespace RushHour_Practicum2
             foreach (Vertice v in apm)
             {
                 //set the parent
-                v.parent = vertice;
+                if (outputMode != 0) 
+                    v.parent = vertice;
                 if (winningBoard(v))
                 {
                     SolvedVertice = v;
