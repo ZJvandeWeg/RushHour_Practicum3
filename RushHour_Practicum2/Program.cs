@@ -19,7 +19,7 @@ namespace RushHour_Practicum2
 			int boardWidth = lines [0].Length;
 			Board board = new Board (boardWidth, boardHeight, lines);
 
-            int amountOfRuns = 100;
+            int amountOfRuns = 25;
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
             sw.Start();
             for (int i = 0; i < amountOfRuns; i++)
