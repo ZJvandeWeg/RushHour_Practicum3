@@ -15,6 +15,8 @@ namespace RushHour_Practicum2
         bool lengthCheckX;
         bool lengthCheckY;
 
+        List<int> statesAtLevel;
+        List<int> doneAtLevel;
         CountdownEvent counter;
         Vertice SolvedVertice;
         Vertice root;
@@ -37,6 +39,12 @@ namespace RushHour_Practicum2
             root = new Vertice(rootBoard, null, 0);
             HashTable.Add(rootBoard.Hash(), rootBoard);
             syncHT = Hashtable.Synchronized(HashTable);
+            statesAtLevel = new List<int>();
+            doneAtLevel = new List<int>();
+            statesAtLevel.Add(0);//Level 0
+            statesAtLevel.Add(0);//State with 1 move
+            doneAtLevel.Add(0);//Root level
+            statesAtLevel[root.level]++;
 
             FirstBoard(rootBoard);
         }
@@ -60,9 +68,13 @@ namespace RushHour_Practicum2
 
         public void solve(Vertice vertice)
         {
-            //Console.WriteLine(counter.CurrentCount);
             if (SolvedVertice != null)
                 return;
+
+            //Wait for the previous level to finish
+            if(vertice.level != 0)
+                while (statesAtLevel[vertice.level - 1] != doneAtLevel[vertice.level - 1])
+                    ;
 
             List<Vertice> apm = new List<Vertice>(allPossibleMoves(vertice));
             foreach (Vertice v in apm)
@@ -76,12 +88,36 @@ namespace RushHour_Practicum2
                 }
                 
                 counter.AddCount();
+                lock (statesAtLevel)
+                {
+                    try
+                    {
+                        statesAtLevel[v.level]++;
+                    }
+                    catch (Exception)
+                    {
+                        statesAtLevel.Add(0);
+                        statesAtLevel[v.level]++;
+                    }
+                }
                 ThreadPool.QueueUserWorkItem((randomstringjustbecauseihavetotypesomething) => 
                     { 
                         solve(v); 
                         counter.Signal(); 
                     }
                     );
+            }
+            lock (doneAtLevel)
+            {
+                try
+                {
+                    doneAtLevel[vertice.level]++;
+                }
+                catch (Exception)
+                {
+                    doneAtLevel.Add(0);
+                    doneAtLevel[vertice.level]++;
+                }
             }
         }
         private bool winningBoard(Vertice v)
