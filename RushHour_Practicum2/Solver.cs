@@ -84,6 +84,8 @@ namespace RushHour_Practicum2
                 if (winningBoard(v))
                 {
                     SolvedVertice = v;
+                    lock (doneAtLevel)
+                        doneAtLevel[vertice.level]++;
                     return;
                 }
                 
