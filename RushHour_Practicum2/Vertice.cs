@@ -9,11 +9,13 @@ namespace RushHour_Practicum2
         public Board state;
         public Vertice parent;
         public string lastMove;
+        public int level;
 
         public Vertice(Board board, string lastmove)
         {
             this.state = board;
             this.lastMove = lastmove;
+            this.level = 0;
         }
 
         public string movesToRoot()

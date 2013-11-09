@@ -16,10 +16,11 @@ namespace RushHour_Practicum2
         bool lengthCheckY;
 
         CountdownEvent counter;
-        Vertice SolvedVertice;
+        SolvedVertice SolvedVertice;
         Vertice root;
         Hashtable syncHT;
         //ConcurrentQueue<Vertice> queue;
+        WaitEvent _waitEvent = new WaitEvent(new ManualResetEvent(false), 0);
 
         public Solver(Board rootBoard, int xTarget, int yTarget, int outputMode)
         {
@@ -43,16 +44,19 @@ namespace RushHour_Practicum2
 
         public void FirstBoard(Board b)
         {
+            this.SolvedVertice = new SolvedVertice(false);
             solve(root);
-            counter.Signal();
-            counter.Wait();//Wait for all the other threads
+            ////counter.Signal();
+            //counter.Wait();//Wait for all the other threads
+
+            _waitEvent.DoneEvent.WaitOne();
 
             if (SolvedVertice != null)
             {
                 if (outputMode == 0)
-                    Console.WriteLine(SolvedVertice.countToRoot());
+                    Console.WriteLine(SolvedVertice.solvedVertice.countToRoot());
                 else
-                    Console.WriteLine(SolvedVertice.movesToRoot());
+                    Console.WriteLine(SolvedVertice.solvedVertice.movesToRoot());
             }
             else
                 Console.WriteLine("Geen oplossing gevonden");
@@ -61,23 +65,52 @@ namespace RushHour_Practicum2
         public void solve(Vertice vertice)
         {
             //Console.WriteLine(counter.CurrentCount);
-            if (SolvedVertice != null)
-                return;
+            //if (SolvedVertice != null)
+            //{
+            //    Console.WriteLine("ERR");
+            //    return;
+            //}
 
             List<Vertice> apm = new List<Vertice>(allPossibleMoves(vertice.state));
             foreach (Vertice v in apm)
             {
                 //set the parent
                 v.parent = vertice;
+                v.level = v.parent.level + 1;
                 if (winningBoard(v))
                 {
-                    SolvedVertice = v;
-                    return;
+                    Console.WriteLine("WIN: " + v.level);
+                    lock (SolvedVertice)
+                    {
+                        if (SolvedVertice.solvedVertice == null)
+                            SolvedVertice.solvedVertice = v;
+                        else if (v.level < SolvedVertice.solvedVertice.level)
+                        {
+                            SolvedVertice.solvedVertice = v;
+                        }
+                    }
                 }
-                 
 
-                counter.AddCount();
-                ThreadPool.QueueUserWorkItem((random) => { solve(v); counter.Signal(); });
+
+                //Console.Write(" LEV: " + v.level);
+                //counter.AddCount();
+                lock (SolvedVertice)
+                {
+                    if (SolvedVertice.solvedVertice == null || SolvedVertice.solvedVertice.level > v.level)
+                    {
+                        if (v.level != 0) Interlocked.Increment(ref _waitEvent.NumerOfThreadsNotYetCompleted);
+
+                        ThreadPool.QueueUserWorkItem((random) =>
+                        {
+                            try { solve(v); }
+                            finally
+                            {
+                                //Console.WriteLine("INC");
+                                if (Interlocked.Decrement(ref _waitEvent.NumerOfThreadsNotYetCompleted) == 0) _waitEvent.DoneEvent.Set();
+                            }
+                        });
+                    }
+                }
             }
         }
         private bool winningBoard(Vertice v)
@@ -319,6 +352,28 @@ namespace RushHour_Practicum2
         {
             bool test = syncHT.ContainsKey(newState.Hash());
             return test;
+        }
+    }
+ 
+    public class WaitEvent
+    {
+        public ManualResetEvent DoneEvent;
+        public int NumerOfThreadsNotYetCompleted;
+        public WaitEvent(ManualResetEvent _doneEvent, int _numerOfThreadsNotYetCompleted)
+        {
+            DoneEvent = _doneEvent;
+            NumerOfThreadsNotYetCompleted = _numerOfThreadsNotYetCompleted;
+        }
+    }
+
+    public class SolvedVertice
+    {
+        public Vertice solvedVertice;
+        public bool set;
+        public SolvedVertice(bool ini)
+        {
+            this.solvedVertice = null;
+            this.set = ini;
         }
     }
 }
